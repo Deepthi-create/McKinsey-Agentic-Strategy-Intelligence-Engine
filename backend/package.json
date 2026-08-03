@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@google/generative-ai": "^0.24.1",
+    "@langchain/core": "^0.3.80",
     "@langchain/langgraph": "^0.2.74",
     "@qdrant/js-client-rest": "^1.13.0",
     "axios": "^1.7.9",
@@ -36,6 +37,6 @@
     "supertest": "^7.0.0"
   },
   "engines": {
-    "node": ">=20"
+    "node": "20.x"
   }
 }
