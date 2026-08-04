@@ -1,11 +1,34 @@
 import axios from "axios";
 
-const DEFAULT_API_BASE_URL = "http://localhost:8080/api";
+const LOCAL_API_BASE_URL = "http://localhost:8080/api";
+const DEPLOYED_API_BASE_URL = "https://ai-market-strategy-engine.onrender.com/api";
 
-export function resolveApiBaseURL(baseURL = process.env.NEXT_PUBLIC_API_URL) {
-  const value = (baseURL || DEFAULT_API_BASE_URL).trim().replace(/\/+$/, "");
+function isLocalHostname(hostname) {
+  return hostname === "localhost" || hostname === "127.0.0.1";
+}
 
-  if (!value) return DEFAULT_API_BASE_URL;
+function isLocalApiURL(value) {
+  try {
+    const url = new URL(value, "http://localhost");
+    return isLocalHostname(url.hostname);
+  } catch {
+    return false;
+  }
+}
+
+export function getDefaultApiBaseURL(hostname = typeof window !== "undefined" ? window.location.hostname : "") {
+  return isLocalHostname(hostname) ? LOCAL_API_BASE_URL : DEPLOYED_API_BASE_URL;
+}
+
+export function resolveApiBaseURL(
+  baseURL = process.env.NEXT_PUBLIC_API_URL,
+  defaultBaseURL = getDefaultApiBaseURL(),
+  hostname = typeof window !== "undefined" ? window.location.hostname : ""
+) {
+  const value = (baseURL || defaultBaseURL).trim().replace(/\/+$/, "");
+
+  if (!value) return defaultBaseURL;
+  if (!isLocalHostname(hostname) && isLocalApiURL(value)) return DEPLOYED_API_BASE_URL;
 
   try {
     const url = new URL(value, "http://localhost");

@@ -7,7 +7,7 @@ Set the project root to `frontend`.
 Environment variables:
 
 ```bash
-NEXT_PUBLIC_API_URL=https://your-render-api.onrender.com/api
+NEXT_PUBLIC_API_URL=https://ai-market-strategy-engine.onrender.com/api
 ```
 
 Build command:
@@ -33,6 +33,12 @@ npm start
 ```
 
 Environment variables are listed in `backend/.env.example`.
+
+For the deployed frontend, set:
+
+```bash
+CORS_ORIGIN=http://localhost:3000,https://ai-market-strategy-engine.vercel.app
+```
 
 ## Managed Services
 

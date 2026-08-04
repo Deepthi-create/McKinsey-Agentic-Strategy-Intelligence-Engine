@@ -15,11 +15,28 @@ import assistantRoutes from "./routes/assistant.routes.js";
 import searchRoutes from "./routes/search.routes.js";
 import { errorHandler, notFound } from "./middleware/error.middleware.js";
 
+const DEFAULT_ALLOWED_ORIGINS = [
+  "http://localhost:3000",
+  "https://ai-market-strategy-engine.vercel.app"
+];
+
+function getAllowedOrigins() {
+  const configuredOrigins = process.env.CORS_ORIGIN?.split(",").map(origin => origin.trim()).filter(Boolean) || [];
+  return new Set([...DEFAULT_ALLOWED_ORIGINS, ...configuredOrigins]);
+}
+
 export function createApp() {
   const app = express();
   app.use(helmet());
   app.use(compression());
-  app.use(cors({ origin: process.env.CORS_ORIGIN?.split(",") || "*", credentials: true }));
+  const allowedOrigins = getAllowedOrigins();
+  app.use(cors({
+    origin(origin, callback) {
+      if (!origin || allowedOrigins.has(origin)) return callback(null, true);
+      return callback(new Error(`Origin ${origin} is not allowed by CORS`));
+    },
+    credentials: true
+  }));
   app.use(express.json({ limit: "10mb" }));
   app.use(express.urlencoded({ extended: true }));
   app.use(morgan(process.env.NODE_ENV === "production" ? "combined" : "dev"));
