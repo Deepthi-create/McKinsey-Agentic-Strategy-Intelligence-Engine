@@ -15,6 +15,24 @@ const intakeSchema = z.object({
   outputType: z.enum(["Market Entry Scan", "Competitor Landscape", "Trend Analysis", "Opportunity Assessment", "Proposal Support"])
 });
 
+function canReviewAllJobs(user) {
+  return user.role === "reviewer" || user.role === "admin";
+}
+
+function scopedJobQuery(req, id) {
+  return {
+    _id: id,
+    ...(canReviewAllJobs(req.user) ? {} : { owner: req.user._id })
+  };
+}
+
+function ownedOrAdminJobQuery(req, id) {
+  return {
+    _id: id,
+    ...(req.user.role === "admin" ? {} : { owner: req.user._id })
+  };
+}
+
 export async function createResearchJob(req, res, next) {
   try {
     const input = intakeSchema.parse(req.body);
@@ -61,7 +79,7 @@ async function startResearchPlanning(jobId, actorId, requestIp) {
 
 export async function listResearchJobs(req, res, next) {
   try {
-    const filter = req.user.role === "admin" ? {} : { owner: req.user._id };
+    const filter = canReviewAllJobs(req.user) ? {} : { owner: req.user._id };
     const jobs = await ResearchJob.find(filter).sort({ updatedAt: -1 }).limit(100);
     res.json({ jobs });
   } catch (err) {
@@ -71,7 +89,7 @@ export async function listResearchJobs(req, res, next) {
 
 export async function getResearchJob(req, res, next) {
   try {
-    const job = await ResearchJob.findById(req.params.id);
+    const job = await ResearchJob.findOne(scopedJobQuery(req, req.params.id));
     if (!job) throw Object.assign(new Error("Research job not found"), { status: 404 });
     const plan = await ResearchPlan.findOne({ job: job._id });
     const sources = await Source.find({ job: job._id }).sort({ qualityScore: -1 }).limit(200);
@@ -84,7 +102,7 @@ export async function getResearchJob(req, res, next) {
 
 export async function createOrRegeneratePlan(req, res, next) {
   try {
-    const job = await ResearchJob.findById(req.body.jobId);
+    const job = await ResearchJob.findOne(ownedOrAdminJobQuery(req, req.body.jobId));
     if (!job) throw Object.assign(new Error("Research job not found"), { status: 404 });
     const plan = await plannerAgent(job);
     await ResearchJob.findByIdAndUpdate(job._id, { status: "planning", progress: 10, currentStep: "Planning", $push: { logs: { stage: "Planning", message: "Plan regenerated" } } });
@@ -96,6 +114,8 @@ export async function createOrRegeneratePlan(req, res, next) {
 
 export async function approvePlan(req, res, next) {
   try {
+    const job = await ResearchJob.findOne(ownedOrAdminJobQuery(req, req.params.jobId)).select("_id");
+    if (!job) throw Object.assign(new Error("Research job not found"), { status: 404 });
     const plan = await ResearchPlan.findOneAndUpdate({ job: req.params.jobId }, { status: "approved", approvedBy: req.user._id, approvedAt: new Date() }, { new: true });
     if (!plan) throw Object.assign(new Error("Research plan not found"), { status: 404 });
     await ResearchJob.findByIdAndUpdate(req.params.jobId, { status: "approved", progress: 18, currentStep: "Plan Approved", $push: { logs: { stage: "Planning", message: "Plan approved for execution" } } });
@@ -108,6 +128,8 @@ export async function approvePlan(req, res, next) {
 
 export async function executeApprovedWorkflow(req, res, next) {
   try {
+    const job = await ResearchJob.findOne(ownedOrAdminJobQuery(req, req.params.jobId)).select("_id");
+    if (!job) throw Object.assign(new Error("Research job not found"), { status: 404 });
     await runResearchWorkflow(req.params.jobId);
     res.json({ message: "Research workflow completed" });
   } catch (err) {

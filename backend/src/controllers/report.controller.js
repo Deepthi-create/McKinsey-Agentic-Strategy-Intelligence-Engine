@@ -3,6 +3,13 @@ import Report from "../models/Report.js";
 import PDFDocument from "pdfkit";
 import { Document, Packer, Paragraph, TextRun } from "docx";
 
+function reportScope(req, id) {
+  return {
+    _id: id,
+    ...(req.user.role === "admin" ? {} : { owner: req.user._id })
+  };
+}
+
 export async function listReports(req, res, next) {
   try {
     const filter = req.user.role === "admin" ? {} : { owner: req.user._id };
@@ -14,7 +21,7 @@ export async function listReports(req, res, next) {
 
 export async function getReport(req, res, next) {
   try {
-    const report = await Report.findById(req.params.id).populate({ path: "evidenceAppendix", populate: "source" });
+    const report = await Report.findOne(reportScope(req, req.params.id)).populate({ path: "evidenceAppendix", populate: "source" });
     if (!report) throw Object.assign(new Error("Report not found"), { status: 404 });
     res.json({ report });
   } catch (err) {
@@ -33,7 +40,7 @@ export async function feedback(req, res, next) {
 
 export async function exportReport(req, res, next) {
   try {
-    const report = await Report.findById(req.params.id).populate({ path: "evidenceAppendix", populate: "source" });
+    const report = await Report.findOne(reportScope(req, req.params.id)).populate({ path: "evidenceAppendix", populate: "source" });
     if (!report) throw Object.assign(new Error("Report not found"), { status: 404 });
     const body = report.sections.map(s => `${s.title}\n\n${s.body}`).join("\n\n");
     const appendix = report.evidenceAppendix.map(e => `- ${e.claim}\n  Source: ${e.source?.url || ""}\n  Confidence: ${Math.round(e.confidence * 100)}%`).join("\n");

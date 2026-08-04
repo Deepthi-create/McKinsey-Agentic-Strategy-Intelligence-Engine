@@ -6,7 +6,9 @@ import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import {
+  BookOpen,
   CircleDollarSign,
+  ClipboardCheck,
   Database,
   FileText,
   Gauge,
@@ -18,6 +20,7 @@ import {
   PanelLeftOpen,
   Search,
   Settings,
+  ShieldCheck,
   Sparkles,
   Sun,
   Upload,
@@ -26,6 +29,7 @@ import {
 } from "lucide-react";
 import { clearUser } from "../redux/store";
 import { cn } from "../lib/utils";
+import { isAdminRole, isReviewerRole, roleLabel } from "../lib/roles";
 import { Button } from "./ui/button";
 import { Modal } from "./ui/modal";
 import { GlobalSearch } from "./dashboard/GlobalSearch";
@@ -40,12 +44,15 @@ const UploadDataHub = dynamic(() => import("./dashboard/UploadDataHub").then(mod
 });
 
 const mainNav = [
-  ["Dashboard", "/dashboard", LayoutDashboard],
-  ["Research Explorer", "/research-explorer", Search],
-  ["Workflow Monitor", "/workflow-monitor", Gauge],
-  ["Reports", "/reports", FileText],
-  ["Data Sources", "/data-sources", Database],
-  ["AI Assistant", "/ai-assistant", Sparkles],
+  { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
+  { label: "Research Explorer", href: "/research-explorer", icon: Search },
+  { label: "Workflow Monitor", href: "/workflow-monitor", icon: Gauge },
+  { label: "Reports", href: "/reports", icon: FileText },
+  { label: "Data Sources", href: "/data-sources", icon: Database },
+  { label: "Knowledge Base", href: "/knowledge-base", icon: BookOpen, reviewerOnly: true },
+  { label: "Evidence Review", href: "/evidence-review", icon: ClipboardCheck, reviewerOnly: true },
+  { label: "Operations", href: "/operations", icon: ShieldCheck, adminOnly: true },
+  { label: "AI Assistant", href: "/ai-assistant", icon: Sparkles },
 ];
 
 export default function AppShell({ children }) {
@@ -169,6 +176,13 @@ export default function AppShell({ children }) {
 }
 
 function Sidebar({ collapsed, pathname, user, logout, drawer, closeDrawer }) {
+  const visibleNav = mainNav.filter(item => {
+    if (item.adminOnly) return isAdminRole(user?.role);
+    if (item.reviewerOnly) return isReviewerRole(user?.role);
+    return true;
+  });
+  const roleDescription = getRoleDescription(user?.role);
+
   return (
     <>
       {drawer && (
@@ -205,16 +219,22 @@ function Sidebar({ collapsed, pathname, user, logout, drawer, closeDrawer }) {
           </Button>
         </div>
         <nav className="grid gap-1" aria-label="Main navigation">
-          {mainNav.map((item) => (
+          {visibleNav.map((item) => (
             <NavItem
-              key={item[1]}
+              key={item.href}
               item={item}
-              active={pathname === item[1]}
+              active={pathname === item.href}
               collapsed={collapsed}
               onClick={closeDrawer}
             />
           ))}
         </nav>
+        {!collapsed && (
+          <div className="mt-4 rounded-lg border border-border/80 bg-elevated/50 p-3 text-xs text-muted-foreground">
+            <p className="font-medium text-foreground">{roleLabel(user?.role)} workspace</p>
+            <p className="mt-1 leading-5">{roleDescription}</p>
+          </div>
+        )}
         <div className="mt-auto grid gap-4 pt-4">
           <div
             className={cn(
@@ -236,7 +256,7 @@ function Sidebar({ collapsed, pathname, user, logout, drawer, closeDrawer }) {
                     {user?.name || "User"}
                   </p>
                   <p className="text-xs capitalize text-muted-foreground">
-                    {user?.role || "consultant"}
+                    {roleLabel(user?.role || "consultant")}
                   </p>
                 </div>
               )}
@@ -284,7 +304,7 @@ function Sidebar({ collapsed, pathname, user, logout, drawer, closeDrawer }) {
 }
 
 function NavItem({ item, active, collapsed, onClick, badge }) {
-  const [label, href, Icon] = item;
+  const { label, href, icon: Icon } = item;
   return (
     <Link
       href={href}
@@ -309,4 +329,10 @@ function NavItem({ item, active, collapsed, onClick, badge }) {
       )}
     </Link>
   );
+}
+
+function getRoleDescription(role) {
+  if (role === "admin") return "Global access to operations, review queues, reports, and system-wide metrics.";
+  if (role === "reviewer") return "Review evidence decisions and maintain validated research knowledge.";
+  return "Create research, monitor your workflow, upload files, and work with your own reports.";
 }

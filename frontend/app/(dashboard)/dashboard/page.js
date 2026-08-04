@@ -6,6 +6,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Calendar, Database, FileText, SlidersHorizontal, TrendingUp, Users, Zap } from "lucide-react";
 import { useSelector } from "react-redux";
 import { api } from "../../../lib/api";
+import { roleLabel } from "../../../lib/roles";
 import { Button } from "../../../components/ui/button";
 import { Card, CardContent } from "../../../components/ui/card";
 import { Select } from "../../../components/ui/input";
@@ -73,6 +74,7 @@ export default function DashboardPage() {
   const metrics = dashboard.data?.metrics || {};
   const charts = dashboard.data?.charts || {};
   const uploadExtractionLabel = `${metrics.processedUploads || 0} processed from ${metrics.uploadedFiles || 0} uploads`;
+  const roleContext = getRoleContext(user?.role);
 
   if (analysisState.dashboardData || analysisState.loading || analysisState.error) {
     return <AnalysisDashboard data={analysisState.dashboardData} query={analysisState.query} generatedAt={analysisState.generatedAt} loading={analysisState.loading} error={analysisState.error} />;
@@ -82,8 +84,9 @@ export default function DashboardPage() {
     <div className="grid animate-page-in gap-4 sm:gap-5">
       <section className="flex flex-col justify-between gap-4 rounded-xl border border-border/80 bg-card/95 p-4 shadow-[0_18px_45px_rgba(15,23,42,0.08)] ring-1 ring-slate-950/[0.02] backdrop-blur dark:bg-card/70 dark:shadow-black/15 dark:ring-white/[0.03] sm:p-5 md:flex-row md:items-center">
         <div>
-          <h1 className="text-2xl font-semibold">Welcome back, {user?.name || "Consultant"}! <span aria-hidden="true">👋</span></h1>
-          <p className="mt-1 text-sm text-muted-foreground">Here&apos;s what&apos;s happening in the market today.</p>
+          <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-primary">{roleLabel(user?.role)} workspace</p>
+          <h1 className="text-2xl font-semibold">{roleContext.title}, {user?.name || "Consultant"}</h1>
+          <p className="mt-1 text-sm text-muted-foreground">{roleContext.description}</p>
         </div>
         <div className="flex flex-wrap gap-2 sm:gap-3">
           <label className="flex h-10 items-center gap-2 rounded-xl border border-border bg-card px-3 text-sm text-muted-foreground"><Calendar size={16} /><Select className="h-8 border-0 bg-transparent p-0 focus:ring-0" value={dateRange} onChange={e => setDateRange(e.target.value)}><option value="7">Last 7 days</option><option value="30">Last 30 days</option><option value="90">Last 90 days</option></Select></label>
@@ -140,4 +143,23 @@ function mergeActivityVolume(jobs = [], uploads = []) {
 
 function label(value) {
   return value.charAt(0).toUpperCase() + value.slice(1);
+}
+
+function getRoleContext(role) {
+  if (role === "admin") {
+    return {
+      title: "System overview",
+      description: "You are viewing global research activity, reports, files, and operational health."
+    };
+  }
+  if (role === "reviewer") {
+    return {
+      title: "Review workspace",
+      description: "Use the review queue to approve, reject, or flag evidence before insights become reusable."
+    };
+  }
+  return {
+    title: "Research workspace",
+    description: "Create research, track your jobs, upload files, and generate strategy reports."
+  };
 }
