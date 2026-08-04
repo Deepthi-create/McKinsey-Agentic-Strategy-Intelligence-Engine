@@ -39,7 +39,7 @@ export default function SignupPage() {
             <Input type="email" placeholder="Email" value={form.email} onChange={e => setForm({ ...form, email: e.target.value })} required />
             <Input type="password" placeholder="Password" value={form.password} onChange={e => setForm({ ...form, password: e.target.value })} required />
             <Select value={form.role} onChange={e => setForm({ ...form, role: e.target.value })}>
-              <option value="consultant">Consultant</option><option value="reviewer">Reviewer</option><option value="admin">Admin</option>
+              <option value="consultant">Consultant</option><option value="reviewer">Reviewer</option>
             </Select>
             <Button>Signup</Button>
             <p className="text-sm text-muted-foreground">Already registered? <Link className="text-primary" href="/login">Sign in</Link></p>

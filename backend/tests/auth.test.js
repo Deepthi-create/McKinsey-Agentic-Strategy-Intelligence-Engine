@@ -1,4 +1,5 @@
 import User from "../src/models/User.js";
+import { resolvePublicSignupRole } from "../src/controllers/auth.controller.js";
 
 test("user password hashing and verification", async () => {
   const user = new User({ name: "Ada Lovelace", email: "ada@example.com" });
@@ -11,4 +12,11 @@ test("user password hashing and verification", async () => {
 test("user role defaults to consultant", () => {
   const user = new User({ name: "Grace Hopper", email: "grace@example.com", passwordHash: "hash" });
   expect(user.role).toBe("consultant");
+});
+
+test("public signup permits consultant and reviewer roles only", () => {
+  expect(resolvePublicSignupRole()).toBe("consultant");
+  expect(resolvePublicSignupRole("consultant")).toBe("consultant");
+  expect(resolvePublicSignupRole("reviewer")).toBe("reviewer");
+  expect(() => resolvePublicSignupRole("admin")).toThrow("Admin accounts cannot be created from public signup");
 });

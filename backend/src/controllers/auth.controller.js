@@ -7,13 +7,21 @@ import { issueTokens, signAccessToken } from "../utils/tokens.js";
 
 const signupSchema = z.object({ name: z.string().min(2), email: z.string().email(), password: z.string().min(8), role: z.enum(["consultant", "reviewer", "admin"]).optional() });
 const loginSchema = z.object({ email: z.string().email(), password: z.string().min(1) });
+const DEFAULT_SIGNUP_ROLE = "consultant";
+
+export function resolvePublicSignupRole(role) {
+  if (role === "admin") {
+    throw Object.assign(new Error("Admin accounts cannot be created from public signup"), { status: 403 });
+  }
+  return role || DEFAULT_SIGNUP_ROLE;
+}
 
 export async function signup(req, res, next) {
   try {
     const input = signupSchema.parse(req.body);
     const exists = await User.exists({ email: input.email.toLowerCase() });
     if (exists) throw Object.assign(new Error("Email is already registered"), { status: 409 });
-    const user = new User({ name: input.name, email: input.email, role: input.role || "consultant" });
+    const user = new User({ name: input.name, email: input.email, role: resolvePublicSignupRole(input.role) });
     await user.setPassword(input.password);
     await user.save();
     await audit({ actor: user._id, action: "auth.signup", entityType: "User", entityId: user._id, ip: req.ip });
