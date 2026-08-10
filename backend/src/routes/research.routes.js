@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { approvePlan, createOrRegeneratePlan, createResearchJob, executeApprovedWorkflow, getResearchJob, listResearchJobs, passthroughWorkflowStep, reviewEvidence } from "../controllers/research.controller.js";
+import { approvePlan, createOrRegeneratePlan, createResearchJob, executeApprovedWorkflow, getResearchJob, listEvidence, listResearchJobs, passthroughWorkflowStep, reviewEvidence } from "../controllers/research.controller.js";
 import { requireAuth, requireRole } from "../middleware/auth.middleware.js";
 import { feedback } from "../controllers/report.controller.js";
 
@@ -8,6 +8,7 @@ router.use(requireAuth);
 router.post("/research-jobs", createResearchJob);
 router.get("/research-jobs", listResearchJobs);
 router.get("/research-jobs/:id", getResearchJob);
+router.get("/evidence", requireRole("reviewer", "admin"), listEvidence);
 router.post("/research-plan", createOrRegeneratePlan);
 router.post("/research-jobs/:jobId/approve-plan", approvePlan);
 router.post("/research-jobs/:jobId/run", executeApprovedWorkflow);

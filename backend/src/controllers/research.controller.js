@@ -100,6 +100,33 @@ export async function getResearchJob(req, res, next) {
   }
 }
 
+export async function listEvidence(req, res, next) {
+  try {
+    const limit = Math.min(500, Math.max(1, Number(req.query.limit || 200)));
+    const status = String(req.query.status || "").trim();
+    const match = status && ["pending", "approved", "rejected", "flagged"].includes(status)
+      ? { validationStatus: status }
+      : {};
+
+    const evidence = await EvidenceRecord.find(match)
+      .populate("source", "url title publisher sourceType qualityScore")
+      .populate("job", "question industry geography status owner")
+      .sort({ validationStatus: 1, confidence: -1, updatedAt: -1 })
+      .limit(limit);
+
+    const summary = await EvidenceRecord.aggregate([
+      { $group: { _id: "$validationStatus", count: { $sum: 1 } } }
+    ]);
+
+    res.json({
+      evidence,
+      summary: summary.reduce((acc, item) => ({ ...acc, [item._id]: item.count }), {})
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+
 export async function createOrRegeneratePlan(req, res, next) {
   try {
     const job = await ResearchJob.findOne(ownedOrAdminJobQuery(req, req.body.jobId));

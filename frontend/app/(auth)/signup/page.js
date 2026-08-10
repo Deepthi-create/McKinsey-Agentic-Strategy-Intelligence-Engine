@@ -4,11 +4,11 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { useDispatch } from "react-redux";
+import { ArrowRight, BriefcaseBusiness, Lock, Mail, ShieldCheck, User } from "lucide-react";
 import { api } from "../../../lib/api";
 import { setUser } from "../../../redux/store";
-import { Button } from "../../../components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "../../../components/ui/card";
-import { Input, Select } from "../../../components/ui/input";
+import { AuthExperience, AuthField } from "../../../components/AuthExperience";
+import { cn } from "../../../lib/utils";
 
 export default function SignupPage() {
   const router = useRouter();
@@ -29,23 +29,99 @@ export default function SignupPage() {
     }
   }
   return (
-    <main className="flex min-h-screen items-center justify-center bg-background p-6">
-      <Card className="w-full max-w-md">
-        <CardHeader><CardTitle>Create account</CardTitle></CardHeader>
-        <CardContent>
-          <form className="grid gap-4" onSubmit={submit}>
-            {error && <p className="rounded-md bg-red-50 p-3 text-sm text-red-700 dark:bg-red-950/40 dark:text-red-200">{error}</p>}
-            <Input placeholder="Name" value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} required />
-            <Input type="email" placeholder="Email" value={form.email} onChange={e => setForm({ ...form, email: e.target.value })} required />
-            <Input type="password" placeholder="Password" value={form.password} onChange={e => setForm({ ...form, password: e.target.value })} required />
-            <Select value={form.role} onChange={e => setForm({ ...form, role: e.target.value })}>
-              <option value="consultant">Consultant</option><option value="reviewer">Reviewer</option>
-            </Select>
-            <Button>Signup</Button>
-            <p className="text-sm text-muted-foreground">Already registered? <Link className="text-primary" href="/login">Sign in</Link></p>
-          </form>
-        </CardContent>
-      </Card>
-    </main>
+    <AuthExperience activeMode="signup">
+      <form className="grid gap-3 pt-6 sm:pt-7" onSubmit={submit}>
+        <div>
+          <h2 className="text-xl font-bold leading-tight text-white sm:text-2xl">
+            Create New Account
+          </h2>
+          <p className="mt-2 text-sm leading-5 text-[#AEB8D0]">
+            Join your AI-powered research workspace
+          </p>
+        </div>
+
+        {error && (
+          <p className="rounded-xl border border-red-400/25 bg-red-950/35 p-3 text-sm leading-6 text-red-100 shadow-[0_0_30px_rgba(239,68,68,0.08)]">
+            {error}
+          </p>
+        )}
+
+        <AuthField
+          icon={User}
+          label="Full Name"
+          autoComplete="name"
+          placeholder="Enter your name"
+          value={form.name}
+          onChange={e => setForm({ ...form, name: e.target.value })}
+          minLength={2}
+          required
+        />
+        <AuthField
+          icon={Mail}
+          label="Email Address"
+          type="email"
+          autoComplete="email"
+          placeholder="Enter your email"
+          value={form.email}
+          onChange={e => setForm({ ...form, email: e.target.value })}
+          required
+        />
+        <AuthField
+          icon={Lock}
+          label="Password"
+          type="password"
+          autoComplete="new-password"
+          placeholder="Create a password"
+          value={form.password}
+          onChange={e => setForm({ ...form, password: e.target.value })}
+          minLength={8}
+          required
+        />
+
+        <div>
+          <span className="mb-1.5 block text-sm font-semibold text-white">Account Type</span>
+          <div className="grid gap-3 sm:grid-cols-2">
+            {[
+              { value: "consultant", label: "Consultant", icon: BriefcaseBusiness },
+              { value: "reviewer", label: "Reviewer", icon: ShieldCheck }
+            ].map(role => {
+              const Icon = role.icon;
+              const isActive = form.role === role.value;
+              return (
+                <button
+                  key={role.value}
+                  type="button"
+                  onClick={() => setForm({ ...form, role: role.value })}
+                  className={cn(
+                    "flex h-10 items-center justify-center gap-2.5 rounded-xl border px-4 text-sm font-semibold transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#8AA2FF]",
+                    isActive
+                      ? "border-[#7C5CFF] bg-[#6D3DFF]/22 text-white shadow-[0_0_26px_rgba(109,61,255,0.18)]"
+                      : "border-[#263E62] bg-[#061528]/58 text-[#AEB8D0] hover:border-[#3C5F91] hover:bg-[#071A34] hover:text-white"
+                  )}
+                >
+                  <Icon className="size-5" />
+                  {role.label}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        <button
+          type="submit"
+          className="inline-flex h-10 w-full items-center justify-center gap-4 rounded-xl bg-gradient-to-r from-[#6D3DFF] via-[#695CFF] to-[#2F7DFF] px-5 text-sm font-semibold text-white shadow-[0_16px_36px_rgba(64,93,255,0.30)] transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[0_20px_48px_rgba(64,93,255,0.38)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#8AA2FF]"
+        >
+          Create Account
+          <ArrowRight className="size-4" />
+        </button>
+
+        <p className="border-t border-[#263E62] pt-4 text-center text-sm leading-6 text-[#AEB8D0]">
+          Already registered?{" "}
+          <Link className="font-semibold text-[#8F73FF] transition-colors hover:text-white" href="/login">
+            Sign In
+          </Link>
+        </p>
+      </form>
+    </AuthExperience>
   );
 }

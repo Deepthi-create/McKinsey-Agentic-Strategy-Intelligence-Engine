@@ -70,6 +70,27 @@ input, select, textarea {
   color: hsl(var(--foreground));
 }
 
+.auth-input {
+  background-color: rgba(6, 21, 40, 0.78) !important;
+}
+
+.auth-input:hover {
+  background-color: rgba(6, 21, 40, 0.86) !important;
+}
+
+.auth-input:focus {
+  background-color: #071a34 !important;
+}
+
+.auth-input:-webkit-autofill,
+.auth-input:-webkit-autofill:hover,
+.auth-input:-webkit-autofill:focus {
+  -webkit-text-fill-color: #ffffff;
+  caret-color: #ffffff;
+  box-shadow: 0 0 0 1000px rgba(6, 21, 40, 0.98) inset;
+  transition: background-color 9999s ease-in-out 0s;
+}
+
 ::selection {
   background: hsl(var(--primary) / 0.35);
 }

@@ -1,42 +1,29 @@
 "use client";
 
 import { Download } from "lucide-react";
-import { downloadBlob, toCsv } from "./analysisUtils";
+import { downloadBlob } from "./analysisUtils";
 import { Button } from "../ui/button";
 
 const MIME = {
   pdf: "application/pdf",
-  docx: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-  xlsx: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-  pptx: "application/vnd.openxmlformats-officedocument.presentationml.presentation",
-  csv: "text/csv;charset=utf-8",
-  json: "application/json;charset=utf-8"
+  docx: "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
 };
 
 export function ExportButtons({ data, pdfTargetId }) {
   const report = buildReport(data);
-  const json = JSON.stringify(data, null, 2);
-  const rows = buildRows(data);
+  const exportButtonClass =
+    "h-12 min-w-[92px] justify-start rounded-xl border-white/10 bg-elevated/90 px-4 text-[15px] font-semibold shadow-lg shadow-black/15 ring-1 ring-white/[0.04] backdrop-blur hover:-translate-y-0.5 hover:border-primary/55 hover:bg-gradient-to-r hover:from-primary/20 hover:to-accent-blue/15 hover:shadow-primary/20";
+  const exportIconClass = "text-primary";
 
   return (
     <div data-export-actions className="flex flex-wrap gap-2 lg:justify-end">
-      <Button variant="secondary" onClick={() => printDashboardPdf(pdfTargetId, report)}>
-        <Download size={16} />PDF
+      <Button className={exportButtonClass} variant="secondary" onClick={() => printDashboardPdf(pdfTargetId, report)}>
+        <Download size={17} className={exportIconClass} />
+        PDF
       </Button>
-      <Button variant="secondary" onClick={() => downloadBlob("analysis.docx", createDocx(report), MIME.docx)}>
+      <Button className={exportButtonClass} variant="secondary" onClick={() => downloadBlob("analysis.docx", createDocx(report), MIME.docx)}>
+        <Download size={17} className={exportIconClass} />
         Word
-      </Button>
-      <Button variant="secondary" onClick={() => downloadBlob("analysis.xlsx", createXlsx(report, rows), MIME.xlsx)}>
-        Excel
-      </Button>
-      <Button variant="secondary" onClick={() => downloadBlob("analysis.csv", toCsv(rows), MIME.csv)}>
-        CSV
-      </Button>
-      <Button variant="secondary" onClick={() => downloadBlob("analysis.pptx", createPptx(report), MIME.pptx)}>
-        PowerPoint
-      </Button>
-      <Button variant="secondary" onClick={() => downloadBlob("analysis.json", json, MIME.json)}>
-        JSON
       </Button>
     </div>
   );
@@ -160,26 +147,6 @@ function buildReport(data = {}) {
   };
 }
 
-function buildRows(data = {}) {
-  const report = buildReport(data);
-  const rows = [
-    ["Section", "Field", "Value"],
-    ["Report", "Title", report.title],
-    ["Report", "Generated At", report.generatedAt]
-  ];
-
-  report.metrics.forEach(([label, value]) => rows.push(["Metrics", label, formatValue(value)]));
-  report.sections.forEach(([title, value]) => {
-    if (Array.isArray(value)) {
-      value.forEach((item, index) => rows.push([title, String(index + 1), formatValue(item)]));
-    } else {
-      rows.push([title, "Text", formatValue(value)]);
-    }
-  });
-  rows.push(["Raw JSON", "Data", JSON.stringify(data)]);
-  return rows;
-}
-
 function hasContent(value) {
   return Array.isArray(value) ? value.length > 0 : value !== undefined && value !== null && String(value).trim() !== "";
 }
@@ -274,70 +241,6 @@ function createDocx(report) {
     "_rels/.rels": `<?xml version="1.0" encoding="UTF-8"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/></Relationships>`,
     "word/document.xml": `<?xml version="1.0" encoding="UTF-8"?><w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:body>${paragraphs.join("")}<w:sectPr><w:pgSz w:w="12240" w:h="15840"/><w:pgMar w:top="1440" w:right="1440" w:bottom="1440" w:left="1440"/></w:sectPr></w:body></w:document>`
   });
-}
-
-function createXlsx(report, rows) {
-  const sheetRows = rows.map((row, rowIndex) => {
-    const cells = row.map((cell, colIndex) => `<c r="${columnName(colIndex + 1)}${rowIndex + 1}" t="inlineStr"><is><t>${xmlText(formatValue(cell))}</t></is></c>`).join("");
-    return `<row r="${rowIndex + 1}">${cells}</row>`;
-  }).join("");
-
-  return zipFiles({
-    "[Content_Types].xml": `<?xml version="1.0" encoding="UTF-8"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/></Types>`,
-    "_rels/.rels": `<?xml version="1.0" encoding="UTF-8"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>`,
-    "xl/workbook.xml": `<?xml version="1.0" encoding="UTF-8"?><workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets><sheet name="${xmlAttr(report.title.slice(0, 31) || "Analysis")}" sheetId="1" r:id="rId1"/></sheets></workbook>`,
-    "xl/_rels/workbook.xml.rels": `<?xml version="1.0" encoding="UTF-8"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/></Relationships>`,
-    "xl/worksheets/sheet1.xml": `<?xml version="1.0" encoding="UTF-8"?><worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><sheetData>${sheetRows}</sheetData></worksheet>`
-  });
-}
-
-function createPptx(report) {
-  const slideCount = Math.max(1, Math.ceil(report.sections.length / 3));
-  const slides = {};
-  const overrides = [];
-  const slideRels = [];
-  const presentationSlideIds = [];
-
-  for (let index = 0; index < slideCount; index += 1) {
-    const slideNumber = index + 1;
-    const sections = report.sections.slice(index * 3, index * 3 + 3);
-    slides[`ppt/slides/slide${slideNumber}.xml`] = slideXml(report, sections, index === 0);
-    overrides.push(`<Override PartName="/ppt/slides/slide${slideNumber}.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.slide+xml"/>`);
-    slideRels.push(`<Relationship Id="rId${slideNumber}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/slide" Target="slides/slide${slideNumber}.xml"/>`);
-    presentationSlideIds.push(`<p:sldId id="${256 + slideNumber}" r:id="rId${slideNumber}"/>`);
-  }
-
-  return zipFiles({
-    "[Content_Types].xml": `<?xml version="1.0" encoding="UTF-8"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/ppt/presentation.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.presentation.main+xml"/>${overrides.join("")}</Types>`,
-    "_rels/.rels": `<?xml version="1.0" encoding="UTF-8"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="ppt/presentation.xml"/></Relationships>`,
-    "ppt/presentation.xml": `<?xml version="1.0" encoding="UTF-8"?><p:presentation xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><p:sldIdLst>${presentationSlideIds.join("")}</p:sldIdLst><p:sldSz cx="9144000" cy="5143500" type="screen16x9"/></p:presentation>`,
-    "ppt/_rels/presentation.xml.rels": `<?xml version="1.0" encoding="UTF-8"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">${slideRels.join("")}</Relationships>`,
-    ...slides
-  });
-}
-
-function slideXml(report, sections, includeMetrics) {
-  const body = [];
-  let shapeId = 2;
-  const addShape = (text, x, y, cx, cy, size, bold = false) => {
-    body.push(shapeText(shapeId, text, x, y, cx, cy, size, bold));
-    shapeId += 1;
-  };
-
-  addShape(report.title, 500000, 280000, 8200000, 700000, 3200, true);
-  if (includeMetrics) {
-    addShape(report.metrics.map(([label, value]) => `${label}: ${formatValue(value)}`).join("\n"), 650000, 1050000, 7800000, 1000000, 1700);
-  }
-  sections.forEach(([title, value], index) => {
-    const y = 2100000 + index * 900000;
-    addShape(`${title}\n${textLines(value).slice(0, 4).join("\n")}`, 650000, y, 7800000, 780000, 1500, index === 0 && !includeMetrics);
-  });
-  return `<?xml version="1.0" encoding="UTF-8"?><p:sld xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main"><p:cSld><p:spTree><p:nvGrpSpPr><p:cNvPr id="1" name=""/><p:cNvGrpSpPr/><p:nvPr/></p:nvGrpSpPr><p:grpSpPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="0" cy="0"/><a:chOff x="0" y="0"/><a:chExt cx="0" cy="0"/></a:xfrm></p:grpSpPr>${body.join("")}</p:spTree></p:cSld><p:clrMapOvr><a:masterClrMapping/></p:clrMapOvr></p:sld>`;
-}
-
-function shapeText(id, text, x, y, cx, cy, size, bold = false) {
-  const paragraphs = String(text).split("\n").map(line => `<a:p><a:r><a:rPr lang="en-US" sz="${size}"${bold ? ' b="1"' : ""}/><a:t>${xmlText(line)}</a:t></a:r></a:p>`).join("");
-  return `<p:sp><p:nvSpPr><p:cNvPr id="${id}" name="Text ${id}"/><p:cNvSpPr/><p:nvPr/></p:nvSpPr><p:spPr><a:xfrm><a:off x="${x}" y="${y}"/><a:ext cx="${cx}" cy="${cy}"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom></p:spPr><p:txBody><a:bodyPr wrap="square"/><a:lstStyle/>${paragraphs}</p:txBody></p:sp>`;
 }
 
 function paragraph(text, bold = false) {
@@ -441,26 +344,12 @@ function concatBytes(parts) {
   return output;
 }
 
-function columnName(index) {
-  let name = "";
-  while (index > 0) {
-    const mod = (index - 1) % 26;
-    name = String.fromCharCode(65 + mod) + name;
-    index = Math.floor((index - mod) / 26);
-  }
-  return name;
-}
-
 function pdfText(value) {
   return String(value).replace(/[^\x09\x0A\x0D\x20-\x7E]/g, " ").replace(/\\/g, "\\\\").replace(/\(/g, "\\(").replace(/\)/g, "\\)");
 }
 
 function xmlText(value) {
   return String(value).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-}
-
-function xmlAttr(value) {
-  return xmlText(value).replace(/"/g, "&quot;").replace(/'/g, "&apos;");
 }
 
 function encode(value) {

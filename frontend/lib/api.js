@@ -16,6 +16,17 @@ function isLocalApiURL(value) {
   }
 }
 
+function isDefaultDeployedApiURL(value) {
+  if (value.startsWith("/")) return false;
+  try {
+    const url = new URL(value, DEPLOYED_API_BASE_URL);
+    const deployedUrl = new URL(DEPLOYED_API_BASE_URL);
+    return url.origin === deployedUrl.origin;
+  } catch {
+    return false;
+  }
+}
+
 export function getDefaultApiBaseURL(hostname = typeof window !== "undefined" ? window.location.hostname : "") {
   return isLocalHostname(hostname) ? LOCAL_API_BASE_URL : DEPLOYED_API_BASE_URL;
 }
@@ -28,6 +39,7 @@ export function resolveApiBaseURL(
   const value = (baseURL || defaultBaseURL).trim().replace(/\/+$/, "");
 
   if (!value) return defaultBaseURL;
+  if (isLocalHostname(hostname) && isDefaultDeployedApiURL(value)) return LOCAL_API_BASE_URL;
   if (!isLocalHostname(hostname) && isLocalApiURL(value)) return DEPLOYED_API_BASE_URL;
 
   try {
@@ -57,7 +69,26 @@ api.interceptors.request.use(config => {
 api.interceptors.response.use(
   response => response,
   error => {
-    const message = error.response?.data?.message || error.message || "Request failed";
+    const details = error.response?.data?.details;
+    const detailMessage = Array.isArray(details)
+      ? details.map(detail => detail.message).filter(Boolean).join(" ")
+      : "";
+    const message = detailMessage || formatServerErrorMessage(error.response?.data?.message) || error.message || "Request failed";
     return Promise.reject(new Error(message));
   }
 );
+
+function formatServerErrorMessage(message) {
+  if (!message) return "";
+
+  try {
+    const issues = JSON.parse(message);
+    if (Array.isArray(issues)) {
+      return issues.map(issue => issue.message).filter(Boolean).join(" ");
+    }
+  } catch {
+    // Keep non-JSON backend messages as-is.
+  }
+
+  return message;
+}
