@@ -2,12 +2,15 @@ import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import { z } from "zod";
 import User from "../models/User.js";
+import { sendPasswordResetCode } from "../services/email.service.js";
 import { audit } from "../utils/audit.js";
 import { issueTokens, signAccessToken } from "../utils/tokens.js";
 
 const signupSchema = z.object({ name: z.string().min(2), email: z.string().email(), password: z.string().min(8), role: z.enum(["consultant", "reviewer", "admin"]).optional() });
 const loginSchema = z.object({ email: z.string().email(), password: z.string().min(1) });
+const forgotPasswordSchema = z.object({ email: z.string().email() });
 const DEFAULT_SIGNUP_ROLE = "consultant";
+const RESET_CODE_TTL_MS = 15 * 60 * 1000;
 
 export function resolvePublicSignupRole(role) {
   if (role === "admin") {
@@ -55,10 +58,34 @@ export async function refresh(req, res, next) {
   }
 }
 
+export async function forgotPassword(req, res, next) {
+  try {
+    const input = forgotPasswordSchema.parse(req.body);
+    const user = await User.findOne({ email: input.email.toLowerCase() }).select("+resetPasswordCodeHash +resetPasswordExpiresAt");
+
+    if (user) {
+      const code = createResetCode();
+      user.resetPasswordCodeHash = await bcrypt.hash(code, 12);
+      user.resetPasswordExpiresAt = new Date(Date.now() + RESET_CODE_TTL_MS);
+      await user.save();
+      await sendPasswordResetCode({ to: user.email, name: user.name, code });
+      await audit({ actor: user._id, action: "auth.password_reset_requested", entityType: "User", entityId: user._id, ip: req.ip });
+    }
+
+    res.json({ message: `Password reset code sent to ${input.email}.` });
+  } catch (err) {
+    next(err);
+  }
+}
+
 export async function me(req, res) {
   res.json({ user: sanitize(req.user) });
 }
 
 export function sanitize(user) {
   return { id: user.id, name: user.name, email: user.email, role: user.role, preferences: user.preferences, apiSettings: user.apiSettings };
+}
+
+function createResetCode() {
+  return String(Math.floor(100000 + Math.random() * 900000));
 }

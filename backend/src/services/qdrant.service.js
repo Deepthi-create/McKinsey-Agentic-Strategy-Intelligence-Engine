@@ -24,6 +24,11 @@ export async function ensureCollections() {
   }
 }
 
+export async function verifyQdrantConnection() {
+  await qdrant().getCollections();
+  return true;
+}
+
 export async function upsertMemory(collection, payload) {
   await ensureCollections();
   const id = crypto.randomUUID();

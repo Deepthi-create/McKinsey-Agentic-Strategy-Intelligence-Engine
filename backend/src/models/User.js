@@ -18,7 +18,9 @@ const schema = new mongoose.Schema({
     firecrawlConfigured: { type: Boolean, default: false },
     qdrantConfigured: { type: Boolean, default: false }
   },
-  refreshTokenHash: { type: String, select: false }
+  refreshTokenHash: { type: String, select: false },
+  resetPasswordCodeHash: { type: String, select: false },
+  resetPasswordExpiresAt: { type: Date, select: false }
 }, { timestamps: true });
 
 schema.methods.setPassword = async function setPassword(password) {

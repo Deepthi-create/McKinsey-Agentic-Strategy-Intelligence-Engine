@@ -4,14 +4,27 @@ import Link from "next/link";
 import { useState } from "react";
 import { ArrowLeft, ArrowRight, Mail } from "lucide-react";
 import { AuthExperience, AuthField } from "../../../components/AuthExperience";
+import { api } from "../../../lib/api";
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState("");
   const [sent, setSent] = useState(false);
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
 
-  function submit(e) {
+  async function submit(e) {
     e.preventDefault();
-    setSent(true);
+    setSent(false);
+    setError("");
+    setLoading(true);
+    try {
+      await api.post("/auth/forgot-password", { email });
+      setSent(true);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
   }
 
   return (
@@ -28,7 +41,13 @@ export default function ForgotPasswordPage() {
 
         {sent && (
           <p className="rounded-xl border border-emerald-400/25 bg-emerald-950/25 p-3 text-sm leading-6 text-emerald-100 shadow-[0_0_30px_rgba(16,185,129,0.08)]">
-            Password reset instructions are ready for {email}.
+            Password reset code sent to {email}.
+          </p>
+        )}
+
+        {error && (
+          <p className="rounded-xl border border-red-400/25 bg-red-950/35 p-3 text-sm leading-6 text-red-100 shadow-[0_0_30px_rgba(239,68,68,0.08)]">
+            {error}
           </p>
         )}
 
@@ -45,9 +64,10 @@ export default function ForgotPasswordPage() {
 
         <button
           type="submit"
+          disabled={loading}
           className="inline-flex h-10 w-full items-center justify-center gap-4 rounded-xl bg-gradient-to-r from-[#6D3DFF] via-[#695CFF] to-[#2F7DFF] px-5 text-sm font-semibold text-white shadow-[0_16px_36px_rgba(64,93,255,0.30)] transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[0_20px_48px_rgba(64,93,255,0.38)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#8AA2FF]"
         >
-          Send Reset Link
+          {loading ? "Sending..." : "Send Reset Link"}
           <ArrowRight className="size-4" />
         </button>
 

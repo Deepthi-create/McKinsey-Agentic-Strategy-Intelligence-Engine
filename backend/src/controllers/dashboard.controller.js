@@ -6,6 +6,7 @@ import Source from "../models/Source.js";
 import AuditLog from "../models/AuditLog.js";
 import ValidationResult from "../models/ValidationResult.js";
 import UploadedFile from "../models/UploadedFile.js";
+import { getDataSourcesHealth } from "../services/dataSourceHealth.service.js";
 
 export async function dashboard(req, res, next) {
   try {
@@ -33,14 +34,7 @@ export async function dashboard(req, res, next) {
       KnowledgeMemory.aggregate([{ $match: { confidence: { $ne: null } } }, { $group: { _id: null, avg: { $avg: "$confidence" } } }])
     ]);
     const confidenceSource = reportConfidence[0]?.avg ?? evidenceConfidence[0]?.avg ?? knowledgeConfidence[0]?.avg;
-    const dataSources = [
-      { name: "Gemini", configured: Boolean(process.env.GEMINI_API_KEY) },
-      { name: "Tavily", configured: Boolean(process.env.TAVILY_API_KEY) },
-      { name: "Firecrawl", configured: Boolean(process.env.FIRECRAWL_API_KEY) },
-      { name: "Qdrant", configured: Boolean(process.env.QDRANT_URL && process.env.QDRANT_API_KEY) },
-      { name: "MongoDB", configured: Boolean(process.env.MONGODB_URI || process.env.MONGO_URL) },
-      { name: "Uploaded Files", configured: uploadedFiles > 0, count: uploadedFiles, processed: processedUploads }
-    ];
+    const dataSources = await getDataSourcesHealth({ uploadedFiles, processedUploads });
     res.json({
       metrics: {
         activeJobs,
