@@ -52,37 +52,64 @@ Schema: {"goals":[""],"workstreams":[{"name":"","objective":"","searchTasks":[""
   return ResearchPlan.findOneAndUpdate({ job: job._id }, { job: job._id, ...plan, status: "draft", generatedBy }, { upsert: true, new: true });
 }
 
+const MAX_SOURCES = Number(process.env.MAX_SOURCES || 20);
+const TAVILY_MAX_RESULTS_PER_TASK = Number(process.env.TAVILY_MAX_RESULTS_PER_TASK || 4);
+const BROWSE_CONCURRENCY = Number(process.env.BROWSE_CONCURRENCY || 5);
+
+async function mapWithConcurrency(items, limit, worker) {
+  const results = [];
+  let index = 0;
+  async function runNext() {
+    while (index < items.length) {
+      const current = index++;
+      results[current] = await worker(items[current], current);
+    }
+  }
+  await Promise.all(Array.from({ length: Math.min(limit, items.length) }, runNext));
+  return results;
+}
+
 async function browserNode(state) {
   await updateJob(state.jobId, "Browsing", 30, "Collecting sources from Tavily, Firecrawl, and Playwright");
   const job = await ResearchJob.findById(state.jobId);
   const tasks = state.plan.workstreams.flatMap(w => w.searchTasks).slice(0, 10);
   const seen = new Set();
-  const created = [];
+  const candidates = [];
+
   for (const task of tasks) {
-    const results = await tavilySearch(task);
+    if (candidates.length >= MAX_SOURCES) break;
+    const results = await tavilySearch(task, { maxResults: TAVILY_MAX_RESULTS_PER_TASK });
     for (const result of results) {
       const canonicalUrl = new URL(result.url).origin + new URL(result.url).pathname.replace(/\/$/, "");
       if (seen.has(canonicalUrl)) continue;
       seen.add(canonicalUrl);
-      const scraped = await scrapeUrl(result.url).catch(() => null);
-      const browsed = scraped ? null : await fetchReadablePage(result.url).catch(() => null);
-      const content = scraped?.markdown || browsed?.content || result.content || result.snippet || "";
-      const source = await Source.findOneAndUpdate({ job: job._id, canonicalUrl }, {
-        job: job._id,
-        url: result.url,
-        canonicalUrl,
-        title: scraped?.metadata?.title || browsed?.title || result.title,
-        publisher: scraped?.metadata?.siteName || new URL(result.url).hostname.replace(/^www\./, ""),
-        publishDate: scraped?.metadata?.publishedTime || null,
-        sourceType: classifySource(result.url),
-        snippet: result.content || result.snippet,
-        content,
-        qualityScore: sourceQuality(result.url, content),
-        metadata: { tavilyScore: result.score, searchTask: task }
-      }, { upsert: true, new: true });
-      created.push(source);
+      candidates.push({ result, canonicalUrl, task });
+      if (candidates.length >= MAX_SOURCES) break;
     }
   }
+
+  await updateJob(state.jobId, "Browsing", 35, `Fetching content for ${candidates.length} sources (up to ${BROWSE_CONCURRENCY} at a time)`);
+
+  const fetched = await mapWithConcurrency(candidates, BROWSE_CONCURRENCY, async ({ result, canonicalUrl, task }) => {
+    const scraped = await scrapeUrl(result.url).catch(() => null);
+    const browsed = scraped ? null : await fetchReadablePage(result.url).catch(() => null);
+    const content = scraped?.markdown || browsed?.content || result.content || result.snippet || "";
+    return Source.findOneAndUpdate({ job: job._id, canonicalUrl }, {
+      job: job._id,
+      url: result.url,
+      canonicalUrl,
+      title: scraped?.metadata?.title || browsed?.title || result.title,
+      publisher: scraped?.metadata?.siteName || new URL(result.url).hostname.replace(/^www\./, ""),
+      publishDate: scraped?.metadata?.publishedTime || null,
+      sourceType: classifySource(result.url),
+      snippet: result.content || result.snippet,
+      content,
+      qualityScore: sourceQuality(result.url, content),
+      metadata: { tavilyScore: result.score, searchTask: task }
+    }, { upsert: true, new: true });
+  });
+
+  const created = fetched.filter(Boolean);
   if (!created.length) throw Object.assign(new Error("No sources were collected for this research plan"), { status: 422 });
   return { sources: created };
 }
