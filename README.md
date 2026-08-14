@@ -83,37 +83,37 @@ The repository contains a Next.js frontend, an Express/MongoDB backend, LangGrap
 
 ```mermaid
 flowchart LR
-  user[Consultant / Reviewer / Admin] --> frontend[Next.js 15 Frontend]
-  frontend --> apiClient[Axios API Client]
-  frontend --> proxy[Next.js API Proxy /api/[...path]]
-  apiClient --> backend[Express REST API]
-  proxy --> backend
+    user["Consultant / Reviewer / Admin"] --> frontend["Next.js 15 Frontend"]
+    frontend --> apiClient["Axios API Client"]
+    frontend --> proxy["Next.js API Proxy /api/[...path]"]
+    apiClient --> backend["Express REST API"]
+    proxy --> backend
 
-  backend --> auth[JWT Auth + RBAC Middleware]
-  backend --> rateLimit[Rate Limit / CORS / Helmet]
-  backend --> mongo[(MongoDB / Mongoose)]
-  backend --> uploads[Upload Processing]
-  backend --> reports[Report Export Engine]
-  backend --> dashboard[Dashboard Aggregations]
-  backend --> graph[LangGraph Research Workflow]
-  backend --> qdrant[(Qdrant Semantic Memory)]
+    backend --> auth["JWT Auth + RBAC Middleware"]
+    backend --> rateLimit["Rate Limit / CORS / Helmet"]
+    backend --> mongo["MongoDB / Mongoose"]
+    backend --> uploads["Upload Processing"]
+    backend --> reports["Report Export Engine"]
+    backend --> dashboard["Dashboard Aggregations"]
+    backend --> graph["LangGraph Research Workflow"]
+    backend --> qdrant["Qdrant Semantic Memory"]
 
-  graph --> planner[Planner Agent]
-  graph --> browser[Browser / Search Step]
-  graph --> extract[Evidence Extraction]
-  graph --> validate[Validation]
-  graph --> aggregate[Aggregation]
-  graph --> writer[Report Writer]
+    graph --> planner["Planner Agent"]
+    graph --> browser["Browser / Search Step"]
+    graph --> extract["Evidence Extraction"]
+    graph --> validate["Validation"]
+    graph --> aggregate["Aggregation"]
+    graph --> writer["Report Writer"]
 
-  planner --> gemini[Gemini Models]
-  extract --> gemini
-  aggregate --> gemini
-  writer --> gemini
-  browser --> tavily[Tavily Search]
-  browser --> firecrawl[Firecrawl]
-  browser --> playwright[Playwright]
-  writer --> mongo
-  writer --> qdrant
+    planner --> gemini["Gemini Models"]
+    extract --> gemini
+    aggregate --> gemini
+    writer --> gemini
+    browser --> tavily["Tavily Search"]
+    browser --> firecrawl["Firecrawl"]
+    browser --> playwright["Playwright"]
+    writer --> mongo
+    writer --> qdrant
 ```
 
 The backend is the workflow authority. The frontend renders data returned by the API and uses the configured API base URL from `NEXT_PUBLIC_API_URL`, falling back to local or deployed defaults.
@@ -122,20 +122,20 @@ The backend is the workflow authority. The frontend renders data returned by the
 
 ```mermaid
 flowchart TD
-  start[User signs in] --> intake[Submit research intake]
-  intake --> createJob[Create ResearchJob]
-  createJob --> plan[Planner creates ResearchPlan]
-  plan --> approve[Plan approved]
-  approve --> run[Run approved workflow]
-  run --> browse[Browse and collect sources]
-  browse --> extract[Extract evidence]
-  extract --> validate[Validate claims]
-  validate --> aggregate[Aggregate findings]
-  aggregate --> report[Generate report]
-  report --> memory[Store report and knowledge memory]
-  memory --> review[Reviewer/admin evidence review]
-  review --> dashboard[Dashboard, reports, exports, search, notifications]
-  run --> failed[Failure logs and failed status]
+    start["User signs in"] --> intake["Submit research intake"]
+    intake --> createJob["Create ResearchJob"]
+    createJob --> plan["Planner creates ResearchPlan"]
+    plan --> approve["Plan approved"]
+    approve --> run["Run approved workflow"]
+    run --> browse["Browse and collect sources"]
+    browse --> extract["Extract evidence"]
+    extract --> validate["Validate claims"]
+    validate --> aggregate["Aggregate findings"]
+    aggregate --> report["Generate report"]
+    report --> memory["Store report and knowledge memory"]
+    memory --> review["Reviewer/admin evidence review"]
+    review --> dashboard["Dashboard, reports, exports, search, notifications"]
+    run --> failed["Failure logs and failed status"]
 ```
 
 ## Folder Structure
@@ -741,7 +741,7 @@ No license file was found in the repository. Until a license is added, all right
 | Frontend deployment URL | Satisfied | Vercel URL found in source included. |
 | Backend deployment URL | Satisfied | Render URL found in source included. |
 | Live application URL | Satisfied | Live frontend URL included. |
-| Project workflow with Mermaid flow diagram | Satisfied | Workflow section includes Mermaid diagram. |
+| Project workflow with Mermaid flow diagram | Satisfied | Workflow section includes Mermaid flow diagram. |
 | Future enhancements | Satisfied | Future enhancements section included. |
 | Troubleshooting section | Satisfied | Troubleshooting table included. |
 | Contributors | Satisfied | Missing contributor metadata explicitly documented. |
