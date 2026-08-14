@@ -95,15 +95,15 @@ flowchart LR
     backend --> uploads["Upload Processing"]
     backend --> reports["Report Export Engine"]
     backend --> dashboard["Dashboard Aggregations"]
-    backend --> graph["LangGraph Research Workflow"]
+    backend --> researchGraph["LangGraph Research Workflow"]
     backend --> qdrant["Qdrant Semantic Memory"]
 
-    graph --> planner["Planner Agent"]
-    graph --> browser["Browser / Search Step"]
-    graph --> extract["Evidence Extraction"]
-    graph --> validate["Validation"]
-    graph --> aggregate["Aggregation"]
-    graph --> writer["Report Writer"]
+    researchGraph --> planner["Planner Agent"]
+    researchGraph --> browser["Browser / Search Step"]
+    researchGraph --> extract["Evidence Extraction"]
+    researchGraph --> validate["Validation"]
+    researchGraph --> aggregate["Aggregation"]
+    researchGraph --> writer["Report Writer"]
 
     planner --> gemini["Gemini Models"]
     extract --> gemini
